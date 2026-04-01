@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { generateEducationalContent } from '../services/ai';
-import { FileText, Sparkles, Loader2, Download, Trash2, ArrowLeft, KeyRound, Printer } from 'lucide-react';
+import { FileText, Sparkles, Loader2, Download, Trash2, ArrowLeft, KeyRound, Printer, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 
@@ -17,6 +17,8 @@ export default function ContentViewer() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'raw' | string>('raw');
   const [error, setError] = useState<string | null>(null);
+  const [language, setLanguage] = useState('Arabic');
+  const [isCopied, setIsCopied] = useState(false);
 
   if (!content) {
     return (
@@ -49,7 +51,7 @@ export default function ContentViewer() {
         throw new Error('API Key is missing. Please add your Gemini API key in Settings.');
       }
 
-      const generatedText = await generateEducationalContent(content.rawText, type, apiKey);
+      const generatedText = await generateEducationalContent(content.rawText, type, apiKey, language);
       
       if (!customApiKey) {
         incrementUsage();
@@ -88,6 +90,17 @@ export default function ContentViewer() {
     URL.revokeObjectURL(url);
   };
 
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsCopied(true);
+      toast.success('Copied to clipboard!');
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy text.');
+    }
+  };
+
   const activeOutput = relatedOutputs.find(o => o.id === activeTab);
 
   return (
@@ -124,6 +137,22 @@ export default function ContentViewer() {
               <Sparkles className="w-4 h-4 text-indigo-600" />
               AI Generation
             </h3>
+            
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Output Language</label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              >
+                <option value="Arabic">Arabic (العربية)</option>
+                <option value="English">English</option>
+                <option value="French">French (Français)</option>
+                <option value="Spanish">Spanish (Español)</option>
+                <option value="German">German (Deutsch)</option>
+              </select>
+            </div>
+
             <div className="space-y-2">
               <button 
                 onClick={() => handleGenerate('Summary')}
@@ -213,6 +242,13 @@ export default function ContentViewer() {
             {!isGenerating && activeOutput && (
               <div className="relative">
                 <div className="flex flex-wrap items-center gap-2 mb-4 md:absolute md:top-0 md:right-0 md:mb-0 print:hidden">
+                  <button 
+                    onClick={() => handleCopy(activeOutput.content)}
+                    className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                  >
+                    {isCopied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />} 
+                    {isCopied ? 'Copied' : 'Copy'}
+                  </button>
                   <button 
                     onClick={() => window.print()}
                     className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"

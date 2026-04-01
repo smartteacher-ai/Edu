@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Settings, BookOpen, Menu, X } from 'lucide-react';
+import { LayoutDashboard, FileText, Settings, BookOpen, Menu, X, Star } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useStore } from '../store/useStore';
+import { toast } from 'sonner';
 
 export default function Layout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  
+  const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [comment, setComment] = useState('');
+  
+  const { addFeedback } = useStore();
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -14,6 +23,26 @@ export default function Layout() {
   ];
 
   const closeMenu = () => setIsMobileMenuOpen(false);
+
+  const handleSubmitFeedback = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+    
+    addFeedback({
+      id: crypto.randomUUID(),
+      rating,
+      comment,
+      createdAt: new Date().toISOString(),
+    });
+    
+    toast.success('Thank you for your feedback!');
+    setIsFeedbackOpen(false);
+    setRating(0);
+    setComment('');
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
@@ -66,8 +95,21 @@ export default function Layout() {
             );
           })}
         </nav>
-        <div className="p-4 text-xs text-indigo-400 text-center">
-          EduGenius AI Phase 1
+        
+        <div className="p-4 mt-auto">
+          <button 
+            onClick={() => {
+              setIsFeedbackOpen(true);
+              closeMenu();
+            }}
+            className="w-full flex items-center justify-center gap-2 bg-indigo-800 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
+          >
+            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+            Rate App
+          </button>
+          <div className="mt-4 text-xs text-indigo-400 text-center">
+            EduGenius AI Phase 1
+          </div>
         </div>
       </aside>
 
@@ -75,6 +117,72 @@ export default function Layout() {
       <main className="flex-1 overflow-auto print:overflow-visible print:w-full print:h-auto w-full pt-16 md:pt-0">
         <Outlet />
       </main>
+
+      {/* Feedback Modal */}
+      {isFeedbackOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Rate EduGenius AI</h2>
+              <button onClick={() => setIsFeedbackOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmitFeedback} className="space-y-4">
+              <div className="flex justify-center gap-2 py-4">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoveredRating(star)}
+                    onMouseLeave={() => setHoveredRating(0)}
+                    className="p-1 transition-transform hover:scale-110"
+                  >
+                    <Star 
+                      className={cn(
+                        "w-8 h-8 transition-colors",
+                        (hoveredRating ? star <= hoveredRating : star <= rating)
+                          ? "text-yellow-400 fill-yellow-400" 
+                          : "text-gray-200"
+                      )} 
+                    />
+                  </button>
+                ))}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Leave a review (optional)
+                </label>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Tell us what you think..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none min-h-[100px] resize-none"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                >
+                  Submit Feedback
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

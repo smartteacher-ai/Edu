@@ -21,6 +21,13 @@ export interface EducationalOutput {
   createdAt: string;
 }
 
+export interface Feedback {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
 interface AppState {
   customApiKey: string | null;
   setCustomApiKey: (key: string | null) => void;
@@ -36,6 +43,9 @@ interface AppState {
   outputs: EducationalOutput[];
   addOutput: (output: EducationalOutput) => void;
   deleteOutput: (id: string) => void;
+
+  feedbacks: Feedback[];
+  addFeedback: (feedback: Feedback) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -71,6 +81,9 @@ export const useStore = create<AppState>()(
       outputs: [],
       addOutput: (output) => set((state) => ({ outputs: [output, ...state.outputs] })),
       deleteOutput: (id) => set((state) => ({ outputs: state.outputs.filter((o) => o.id !== id) })),
+
+      feedbacks: [],
+      addFeedback: (feedback) => set((state) => ({ feedbacks: [feedback, ...state.feedbacks] })),
     }),
     {
       name: 'edugenius-storage',

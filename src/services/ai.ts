@@ -97,24 +97,27 @@ Do not add any conversational filler, markdown formatting (unless present in the
 export const generateEducationalContent = async (
   rawText: string,
   type: 'Summary' | 'LessonPlan' | 'Quiz' | 'CourseOutline',
-  apiKey: string
+  apiKey: string,
+  language: string = 'Arabic'
 ) => {
   try {
     const ai = new GoogleGenAI({ apiKey });
     
     let prompt = '';
+    const langInstruction = `\n\nCRITICAL: You MUST generate the entire response in ${language}.`;
+    
     switch (type) {
       case 'Summary':
-        prompt = `Extract a short, medium, and detailed summary of the following text. Format as Markdown with clear headings.\n\nText:\n${rawText}`;
+        prompt = `Extract a short, medium, and detailed summary of the following text. Format as Markdown with clear headings.${langInstruction}\n\nText:\n${rawText}`;
         break;
       case 'LessonPlan':
-        prompt = `Structure the following text into a logical lesson plan. Include Title, Objectives, Main Points, and a Step-by-step explanation. Explain technical terms simply. Format as Markdown.\n\nText:\n${rawText}`;
+        prompt = `Structure the following text into a logical lesson plan. Include Title, Objectives, Main Points, and a Step-by-step explanation. Explain technical terms simply. Format as Markdown.${langInstruction}\n\nText:\n${rawText}`;
         break;
       case 'Quiz':
-        prompt = `Create a quiz based on the following text. Include Multiple Choice, True/False, and Essay questions with varying difficulties (Beginner, Intermediate, Advanced). Provide an answer key at the end. Format as Markdown.\n\nText:\n${rawText}`;
+        prompt = `Create a quiz based on the following text. Include Multiple Choice, True/False, and Essay questions with varying difficulties (Beginner, Intermediate, Advanced). Provide an answer key at the end. Format as Markdown.${langInstruction}\n\nText:\n${rawText}`;
         break;
       case 'CourseOutline':
-        prompt = `Chunk the following information into a full Course Structure (Modules -> Lessons -> Objectives -> Assessments). Format as Markdown.\n\nText:\n${rawText}`;
+        prompt = `Chunk the following information into a full Course Structure (Modules -> Lessons -> Objectives -> Assessments). Format as Markdown.${langInstruction}\n\nText:\n${rawText}`;
         break;
     }
 
