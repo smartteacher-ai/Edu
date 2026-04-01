@@ -20,9 +20,9 @@ export default function NewContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (limit to 15MB for base64 inline data)
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error("File is too large. Please upload a file smaller than 15MB.");
+    // Check file size (limit to 500MB)
+    if (file.size > 500 * 1024 * 1024) {
+      toast.error("File is too large. Please upload a file smaller than 500MB.");
       return;
     }
 
@@ -82,14 +82,14 @@ export default function NewContent() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">New Upload</h1>
-        <p className="text-gray-500 mt-1">Upload a file or paste raw text to extract content.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">New Upload</h1>
+        <p className="text-gray-500 mt-1 text-sm md:text-base">Upload a file or paste raw text to extract content.</p>
       </div>
 
       <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
+        <div className="p-4 md:p-6 border-b border-gray-100">
           <label className="block text-sm font-medium text-gray-700 mb-2">Content Title</label>
           <input 
             type="text" 
@@ -100,10 +100,10 @@ export default function NewContent() {
           />
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
           {/* Upload Area */}
           <div 
-            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer"
+            className="border-2 border-dashed border-gray-300 rounded-xl p-6 md:p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           >
             <input 
@@ -113,14 +113,14 @@ export default function NewContent() {
               accept=".txt,.pdf,.doc,.docx,audio/*"
               onChange={handleFileUpload}
             />
-            <div className="flex justify-center gap-4 mb-4">
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-full"><UploadCloud className="w-6 h-6" /></div>
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-full"><FileText className="w-6 h-6" /></div>
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full"><Mic className="w-6 h-6" /></div>
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-full"><FileType2 className="w-6 h-6" /></div>
+            <div className="flex justify-center gap-2 md:gap-4 mb-4 flex-wrap">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-full"><UploadCloud className="w-5 h-5 md:w-6 md:h-6" /></div>
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-full"><FileText className="w-5 h-5 md:w-6 md:h-6" /></div>
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full"><Mic className="w-5 h-5 md:w-6 md:h-6" /></div>
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-full"><FileType2 className="w-5 h-5 md:w-6 md:h-6" /></div>
             </div>
-            <h3 className="text-lg font-medium text-gray-900">Click to upload or drag and drop</h3>
-            <p className="text-sm text-gray-500 mt-1">TXT, PDF, Word, or Audio (Max 10MB)</p>
+            <h3 className="text-base md:text-lg font-medium text-gray-900">Click to upload or drag and drop</h3>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">TXT, PDF, Word, or Audio (Max 500MB)</p>
           </div>
 
           {/* Text Extraction UI */}
@@ -141,23 +141,23 @@ export default function NewContent() {
               }}
               dir="auto"
               placeholder="Paste your raw text here or upload a file above..."
-              className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono text-sm resize-y"
+              className="w-full h-48 md:h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono text-sm resize-y"
             />
             <p className="text-xs text-gray-500 mt-2">Review and edit the extracted text for accuracy before generating AI content.</p>
           </div>
         </div>
 
-        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+        <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
           <button 
             onClick={() => navigate('/content')}
-            className="px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors"
+            className="px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors w-full sm:w-auto"
           >
             Cancel
           </button>
           <button 
             onClick={handleSave}
             disabled={!rawText.trim() || isExtracting}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm w-full sm:w-auto"
           >
             Save & Continue
           </button>

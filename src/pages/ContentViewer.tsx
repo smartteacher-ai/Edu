@@ -91,35 +91,35 @@ export default function ContentViewer() {
   const activeOutput = relatedOutputs.find(o => o.id === activeTab);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none">
-      <div className="flex items-center gap-4 mb-2 print:hidden">
-        <Link to="/content" className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none">
+      <div className="flex items-center gap-3 md:gap-4 mb-2 print:hidden">
+        <Link to="/content" className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500 shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{content.title}</h1>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-            <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs font-medium">{content.type}</span>
+        <div className="min-w-0">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 truncate">{content.title}</h1>
+          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500 mt-1 flex-wrap">
+            <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">{content.type}</span>
             <span>Extracted on {new Date(content.extractedAt).toLocaleDateString()}</span>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3 print:hidden">
-          <div className="flex-1">{error}</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-start sm:items-center gap-3 print:hidden">
+          <div className="flex-1 text-sm">{error}</div>
           {error.includes('Settings') && (
-            <Link to="/settings" className="flex items-center gap-1 text-sm font-medium bg-red-100 px-3 py-1 rounded hover:bg-red-200 transition-colors">
+            <Link to="/settings" className="flex items-center gap-1 text-sm font-medium bg-red-100 px-3 py-1.5 rounded hover:bg-red-200 transition-colors shrink-0">
               <KeyRound className="w-4 h-4" /> Go to Settings
             </Link>
           )}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 print:block">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8 print:block">
         {/* Sidebar Actions */}
         <div className="space-y-4 print:hidden">
-          <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+          <div className="bg-white border border-gray-100 rounded-xl p-4 md:p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-600" />
               AI Generation
@@ -158,22 +158,22 @@ export default function ContentViewer() {
         </div>
 
         {/* Main Viewer */}
-        <div className="lg:col-span-3 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden flex flex-col h-[700px] print:h-auto print:border-none print:shadow-none print:block">
+        <div className="lg:col-span-3 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden flex flex-col h-[500px] md:h-[700px] print:h-auto print:border-none print:shadow-none print:block">
           {/* Tabs */}
-          <div className="flex border-b border-gray-100 overflow-x-auto bg-gray-50/50 print:hidden">
+          <div className="flex border-b border-gray-100 overflow-x-auto bg-gray-50/50 print:hidden scrollbar-hide">
             <button
               onClick={() => setActiveTab('raw')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+              className={`px-4 md:px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                 activeTab === 'raw' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}
             >
               Raw Text
             </button>
             {relatedOutputs.map(output => (
-              <div key={output.id} className="flex items-center group">
+              <div key={output.id} className="flex items-center group shrink-0">
                 <button
                   onClick={() => setActiveTab(output.id)}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                  className={`px-3 md:px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                     activeTab === output.id ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -184,7 +184,8 @@ export default function ContentViewer() {
                     deleteOutput(output.id);
                     if (activeTab === output.id) setActiveTab('raw');
                   }}
-                  className="px-2 py-3 border-b-2 border-transparent text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-600 transition-all"
+                  className="px-2 py-3 border-b-2 border-transparent text-gray-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-red-600 transition-all"
+                  aria-label="Delete output"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -193,17 +194,17 @@ export default function ContentViewer() {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-8 print:p-0 print:overflow-visible">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 print:p-0 print:overflow-visible">
             {isGenerating && (
               <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 print:hidden">
                 <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
-                <p className="font-medium animate-pulse">Synthesizing educational content...</p>
+                <p className="font-medium animate-pulse text-center px-4">Synthesizing educational content...</p>
               </div>
             )}
             
             {!isGenerating && activeTab === 'raw' && (
               <div className="prose prose-indigo max-w-none" dir="auto">
-                <div className="whitespace-pre-wrap font-mono text-sm text-gray-700 bg-gray-50 p-6 rounded-lg border border-gray-100 print:border-none print:bg-white print:p-0">
+                <div className="whitespace-pre-wrap font-mono text-xs md:text-sm text-gray-700 bg-gray-50 p-4 md:p-6 rounded-lg border border-gray-100 print:border-none print:bg-white print:p-0">
                   {content.rawText}
                 </div>
               </div>
@@ -211,7 +212,7 @@ export default function ContentViewer() {
 
             {!isGenerating && activeOutput && (
               <div className="relative">
-                <div className="absolute top-0 right-0 flex items-center gap-2 print:hidden">
+                <div className="flex flex-wrap items-center gap-2 mb-4 md:absolute md:top-0 md:right-0 md:mb-0 print:hidden">
                   <button 
                     onClick={() => window.print()}
                     className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
@@ -225,7 +226,7 @@ export default function ContentViewer() {
                     <Download className="w-4 h-4" /> Export MD
                   </button>
                 </div>
-                <div className="markdown-body prose prose-indigo max-w-none mt-12 print:mt-0" dir="auto">
+                <div className="markdown-body prose prose-indigo max-w-none md:mt-12 print:mt-0" dir="auto">
                   <ReactMarkdown>{activeOutput.content}</ReactMarkdown>
                 </div>
               </div>
