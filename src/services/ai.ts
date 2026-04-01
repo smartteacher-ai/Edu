@@ -1,6 +1,10 @@
 import { GoogleGenAI } from '@google/genai';
 
-export const extractTextFromMedia = async (file: File, apiKey: string): Promise<string> => {
+export const extractTextFromMedia = async (
+  file: File, 
+  apiKey: string,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
   try {
     const ai = new GoogleGenAI({ apiKey });
     
@@ -29,19 +33,35 @@ Do not add any conversational filler, markdown formatting (unless present in the
       const uploadUrlResumable = initRes.headers.get('X-Goog-Upload-URL');
       if (!uploadUrlResumable) throw new Error('Failed to get upload URL');
       
-      // 2. Upload the file chunks
-      const uploadRes = await fetch(uploadUrlResumable, {
-        method: 'POST',
-        headers: {
-          'Content-Length': file.size.toString(),
-          'X-Goog-Upload-Offset': '0',
-          'X-Goog-Upload-Command': 'upload, finalize',
-        },
-        body: file
+      // 2. Upload the file chunks with progress tracking
+      const fileInfo = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadUrlResumable, true);
+        xhr.setRequestHeader('Content-Length', file.size.toString());
+        xhr.setRequestHeader('X-Goog-Upload-Offset', '0');
+        xhr.setRequestHeader('X-Goog-Upload-Command', 'upload, finalize');
+        
+        if (onProgress) {
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = Math.round((event.loaded / event.total) * 100);
+              onProgress(percentComplete);
+            }
+          };
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.send(file);
       });
-      
-      if (!uploadRes.ok) throw new Error('Failed to upload file to Gemini');
-      const fileInfo = await uploadRes.json();
+
       const fileUri = fileInfo.file.uri;
 
       // 3. Generate content using the uploaded file URI
@@ -61,6 +81,8 @@ Do not add any conversational filler, markdown formatting (unless present in the
       return response.text || '';
     } else {
       // Inline for smaller files
+      if (onProgress) onProgress(10); // Fake initial progress
+      
       const base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -70,6 +92,8 @@ Do not add any conversational filler, markdown formatting (unless present in the
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
+
+      if (onProgress) onProgress(50); // Fake processing progress
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -85,6 +109,8 @@ Do not add any conversational filler, markdown formatting (unless present in the
           ]
         }
       });
+
+      if (onProgress) onProgress(100);
 
       return response.text || '';
     }

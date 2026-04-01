@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Settings, BookOpen, Menu, X, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, FileText, Settings, BookOpen, Menu, X, Star, HelpCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useStore } from '../store/useStore';
 import { toast } from 'sonner';
+import { Joyride, EventData, STATUS, Step } from 'react-joyride';
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   
@@ -14,12 +16,64 @@ export default function Layout() {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
   
-  const { addFeedback } = useStore();
+  const { addFeedback, hasSeenTutorial, setHasSeenTutorial } = useStore();
+
+  const [runTutorial, setRunTutorial] = useState(false);
+
+  useEffect(() => {
+    if (!hasSeenTutorial) {
+      setRunTutorial(true);
+    }
+  }, [hasSeenTutorial]);
+
+  const tutorialSteps: Step[] = [
+    {
+      target: 'body',
+      content: 'Welcome to EduGenius AI! Let\'s take a quick tour to see how you can generate educational content effortlessly.',
+      placement: 'center',
+      skipBeacon: true,
+    },
+    {
+      target: '.nav-dashboard',
+      content: 'This is your Dashboard. Here you can see an overview of your usage and learn more about the app.',
+      placement: 'right',
+    },
+    {
+      target: '.nav-content',
+      content: 'The "My Content" section is where you upload files (PDF, Audio, Text) and manage your extracted texts.',
+      placement: 'right',
+    },
+    {
+      target: '.nav-settings',
+      content: 'In Settings, you can configure your own Google Gemini API key for unlimited usage.',
+      placement: 'right',
+    },
+    {
+      target: '.nav-rate',
+      content: 'Love the app? You can leave a rating and feedback here anytime.',
+      placement: 'right',
+    },
+  ];
+
+  const handleJoyrideCallback = (data: EventData) => {
+    const { status } = data;
+    const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+
+    if (finishedStatuses.includes(status)) {
+      setRunTutorial(false);
+      setHasSeenTutorial(true);
+    }
+  };
+
+  const startTutorial = () => {
+    setRunTutorial(true);
+    if (isMobileMenuOpen) closeMenu();
+  };
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'My Content', path: '/content', icon: FileText },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard, className: 'nav-dashboard' },
+    { name: 'My Content', path: '/content', icon: FileText, className: 'nav-content' },
+    { name: 'Settings', path: '/settings', icon: Settings, className: 'nav-settings' },
   ];
 
   const closeMenu = () => setIsMobileMenuOpen(false);
@@ -46,6 +100,18 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
+      <Joyride
+        steps={tutorialSteps}
+        run={runTutorial}
+        continuous
+        options={{
+          primaryColor: '#4f46e5', // indigo-600
+          zIndex: 10000,
+          showProgress: true,
+        }}
+        onEvent={handleJoyrideCallback}
+      />
+
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between bg-indigo-900 text-white p-4 print:hidden w-full absolute top-0 z-40">
         <div className="flex items-center gap-2">
@@ -86,6 +152,7 @@ export default function Layout() {
                 onClick={closeMenu}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  item.className,
                   isActive ? "bg-indigo-800 text-white font-medium" : "hover:bg-indigo-800/50 text-indigo-200"
                 )}
               >
@@ -96,13 +163,20 @@ export default function Layout() {
           })}
         </nav>
         
-        <div className="p-4 mt-auto">
+        <div className="p-4 mt-auto space-y-2">
+          <button 
+            onClick={startTutorial}
+            className="w-full flex items-center justify-center gap-2 bg-indigo-800/50 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
+          >
+            <HelpCircle className="w-4 h-4 text-indigo-300" />
+            Show Tutorial
+          </button>
           <button 
             onClick={() => {
               setIsFeedbackOpen(true);
               closeMenu();
             }}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-800 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
+            className="nav-rate w-full flex items-center justify-center gap-2 bg-indigo-800 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
           >
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
             Rate App

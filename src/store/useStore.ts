@@ -46,6 +46,9 @@ interface AppState {
 
   feedbacks: Feedback[];
   addFeedback: (feedback: Feedback) => void;
+
+  hasSeenTutorial: boolean;
+  setHasSeenTutorial: (seen: boolean) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -84,6 +87,9 @@ export const useStore = create<AppState>()(
 
       feedbacks: [],
       addFeedback: (feedback) => set((state) => ({ feedbacks: [feedback, ...state.feedbacks] })),
+
+      hasSeenTutorial: false,
+      setHasSeenTutorial: (seen) => set({ hasSeenTutorial: seen }),
     }),
     {
       name: 'edugenius-storage',
