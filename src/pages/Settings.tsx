@@ -36,7 +36,7 @@ export default function Settings() {
             <div>
               <h3 className="text-sm font-medium text-indigo-900">{t('usageLimits')}</h3>
               <p className="text-sm text-indigo-700 mt-1">
-                {t('usageDesc1')} <span className="font-semibold">{usage.count}/3</span>.
+                {t('usageDesc1')} <span className="font-semibold">{usage.count}/5</span>.
               </p>
               <p className="text-sm text-indigo-700 mt-2">
                 {t('usageDesc2')}

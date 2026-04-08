@@ -72,7 +72,7 @@ export const translations = {
     apiKeyPlaceholder: 'Enter your API key...',
     saveSettings: 'Save Settings',
     usageLimits: 'Usage Limits',
-    usageDesc1: 'The default API key allows for 3 generations per day. Today\'s usage: ',
+    usageDesc1: 'The default API key allows for 5 generations per day. Today\'s usage: ',
     usageDesc2: 'For unlimited usage, please provide your own free Google Gemini API key.',
     
     // Feedback
@@ -163,7 +163,7 @@ export const translations = {
     apiKeyPlaceholder: 'أدخل مفتاح API الخاص بك...',
     saveSettings: 'حفظ الإعدادات',
     usageLimits: 'حدود الاستخدام',
-    usageDesc1: 'يسمح مفتاح API الافتراضي بـ 3 عمليات توليد يومياً. الاستخدام اليوم: ',
+    usageDesc1: 'يسمح مفتاح API الافتراضي بـ 5 عمليات توليد يومياً. الاستخدام اليوم: ',
     usageDesc2: 'للاستخدام غير المحدود، يرجى توفير مفتاح Google Gemini API مجاني خاص بك.',
     
     // Feedback

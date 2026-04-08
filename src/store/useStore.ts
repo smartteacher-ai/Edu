@@ -74,7 +74,7 @@ export const useStore = create<AppState>()(
         const today = format(new Date(), 'yyyy-MM-dd');
         const { usage } = get();
         if (usage.date !== today) return true;
-        return usage.count < 3;
+        return usage.count < 5;
       },
 
       contents: [],

@@ -36,7 +36,7 @@ export default function ContentViewer() {
     
     // Check API limits
     if (!customApiKey && !canUseDefaultKey()) {
-      const msg = language === 'ar' ? 'لقد وصلت إلى الحد اليومي المسموح به وهو 3 عمليات توليد مجانية. يرجى إضافة مفتاح API الخاص بك في الإعدادات للاستخدام غير المحدود.' : 'You have reached your daily limit of 3 free generations. Please add your own API key in Settings for unlimited use.';
+      const msg = language === 'ar' ? 'لقد وصلت إلى الحد اليومي المسموح به وهو 5 عمليات توليد مجانية. يرجى إضافة مفتاح API الخاص بك في الإعدادات للاستخدام غير المحدود.' : 'You have reached your daily limit of 5 free generations. Please add your own API key in Settings for unlimited use.';
       setError(msg);
       toast.error(msg);
       return;
