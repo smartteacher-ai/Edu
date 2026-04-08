@@ -4,10 +4,12 @@ import { useStore, ContentType } from '../store/useStore';
 import { extractTextFromMedia } from '../services/ai';
 import { UploadCloud, FileText, Mic, FileType2, Loader2, Square, Play } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from '../lib/i18n';
 
 export default function NewContent() {
   const navigate = useNavigate();
-  const { addContent, customApiKey } = useStore();
+  const { addContent, customApiKey, language } = useStore();
+  const t = useTranslation(language);
   
   const [title, setTitle] = useState('');
   const [rawText, setRawText] = useState('');
@@ -63,7 +65,7 @@ export default function NewContent() {
       }, 1000);
     } catch (error) {
       console.error("Error accessing microphone:", error);
-      toast.error("Could not access microphone. Please check permissions.");
+      toast.error(language === 'ar' ? 'لا يمكن الوصول إلى الميكروفون. يرجى التحقق من الأذونات.' : "Could not access microphone. Please check permissions.");
     }
   };
 
@@ -84,7 +86,7 @@ export default function NewContent() {
   const processFile = async (file: File) => {
     // Check file size (limit to 500MB)
     if (file.size > 500 * 1024 * 1024) {
-      toast.error("File is too large. Please upload a file smaller than 500MB.");
+      toast.error(language === 'ar' ? 'الملف كبير جداً. يرجى رفع ملف أصغر من 500 ميجابايت.' : "File is too large. Please upload a file smaller than 500MB.");
       return;
     }
 
@@ -106,23 +108,23 @@ export default function NewContent() {
         const apiKey = customApiKey || defaultKey;
         
         if (!apiKey) {
-          throw new Error("API Key is missing. Please add it in Settings.");
+          throw new Error(language === 'ar' ? 'مفتاح API مفقود. يرجى إضافته في الإعدادات.' : "API Key is missing. Please add it in Settings.");
         }
 
         const extractedText = await extractTextFromMedia(file, apiKey, (progress) => {
           setUploadProgress(progress);
         });
         setRawText(extractedText);
-        toast.success("Text extracted successfully!");
+        toast.success(language === 'ar' ? 'تم استخراج النص بنجاح!' : "Text extracted successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to extract text from file.");
+        toast.error(error.message || (language === 'ar' ? 'فشل في استخراج النص من الملف.' : "Failed to extract text from file."));
         setRawText("");
       } finally {
         setIsExtracting(false);
         setUploadProgress(0);
       }
     } else {
-      toast.error("Unsupported file type. Please upload TXT, PDF, or Audio files.");
+      toast.error(language === 'ar' ? 'نوع الملف غير مدعوم. يرجى رفع ملفات TXT أو PDF أو ملفات صوتية.' : "Unsupported file type. Please upload TXT, PDF, or Audio files.");
     }
   };
 
@@ -136,11 +138,11 @@ export default function NewContent() {
 
   const handleSave = () => {
     if (!rawText.trim()) {
-      toast.error('Please enter some text or upload a file to extract content.');
+      toast.error(language === 'ar' ? 'يرجى إدخال بعض النص أو رفع ملف لاستخراج المحتوى.' : 'Please enter some text or upload a file to extract content.');
       return;
     }
     
-    const finalTitle = title.trim() || (rawText.trim().substring(0, 25) + '...') || 'Untitled Document';
+    const finalTitle = title.trim() || (rawText.trim().substring(0, 25) + '...') || (language === 'ar' ? 'مستند بدون عنوان' : 'Untitled Document');
     
     const newContent = {
       id: crypto.randomUUID(),
@@ -151,25 +153,25 @@ export default function NewContent() {
     };
     
     addContent(newContent);
-    toast.success('Content saved successfully!');
+    toast.success(language === 'ar' ? 'تم حفظ المحتوى بنجاح!' : 'Content saved successfully!');
     navigate(`/content/${newContent.id}`);
   };
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">New Upload</h1>
-        <p className="text-gray-500 mt-1 text-sm md:text-base">Upload a file, record audio, or paste raw text to extract content.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t('uploadNew')}</h1>
+        <p className="text-gray-500 mt-1 text-sm md:text-base">{language === 'ar' ? 'ارفع ملفاً، سجل صوتاً، أو الصق نصاً خاماً لاستخراج المحتوى.' : 'Upload a file, record audio, or paste raw text to extract content.'}</p>
       </div>
 
       <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
         <div className="p-4 md:p-6 border-b border-gray-100">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Content Title</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t('title')}</label>
           <input 
             type="text" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Biology Chapter 4"
+            placeholder={language === 'ar' ? "مثال: الفصل الرابع - الأحياء" : "e.g., Biology Chapter 4"}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
           />
         </div>
@@ -193,25 +195,25 @@ export default function NewContent() {
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-full"><FileText className="w-5 h-5 md:w-6 md:h-6" /></div>
                 <div className="p-3 bg-amber-50 text-amber-600 rounded-full"><FileType2 className="w-5 h-5 md:w-6 md:h-6" /></div>
               </div>
-              <h3 className="text-base md:text-lg font-medium text-gray-900">Click to upload or drag and drop</h3>
-              <p className="text-xs md:text-sm text-gray-500 mt-1">TXT, PDF, Word, or Audio (Max 500MB)</p>
+              <h3 className="text-base md:text-lg font-medium text-gray-900">{t('dragDrop')}</h3>
+              <p className="text-xs md:text-sm text-gray-500 mt-1">{t('supportedFiles')}</p>
             </div>
 
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 md:p-8 text-center flex flex-col items-center justify-center h-full">
               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full mb-4">
                 <Mic className="w-5 h-5 md:w-6 md:h-6" />
               </div>
-              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">Record Audio Directly</h3>
+              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">{t('recordAudio')}</h3>
               {isRecording ? (
                 <div className="flex flex-col items-center gap-3">
                   <span className="text-red-500 font-mono font-medium animate-pulse">
-                    Recording... {formatDuration(recordingDuration)}
+                    {t('recording')} {formatDuration(recordingDuration)}
                   </span>
                   <button
                     onClick={stopRecording}
                     className="flex items-center gap-2 bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 rounded-lg font-medium transition-colors"
                   >
-                    <Square className="w-4 h-4 fill-current" /> Stop Recording
+                    <Square className="w-4 h-4 fill-current" /> {t('stopRecording')}
                   </button>
                 </div>
               ) : (
@@ -219,7 +221,7 @@ export default function NewContent() {
                   onClick={startRecording}
                   className="flex items-center gap-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-4 py-2 rounded-lg font-medium transition-colors"
                 >
-                  <Play className="w-4 h-4 fill-current" /> Start Recording
+                  <Play className="w-4 h-4 fill-current" /> {t('startRecording')}
                 </button>
               )}
             </div>
@@ -231,7 +233,7 @@ export default function NewContent() {
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-indigo-800 flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" /> 
-                  {uploadProgress < 100 ? 'Uploading & Processing...' : 'Extracting Text...'}
+                  {uploadProgress < 100 ? (language === 'ar' ? 'جاري الرفع والمعالجة...' : 'Uploading & Processing...') : (language === 'ar' ? 'جاري استخراج النص...' : 'Extracting Text...')}
                 </span>
                 <span className="text-sm font-bold text-indigo-600">{uploadProgress}%</span>
               </div>
@@ -243,8 +245,8 @@ export default function NewContent() {
               </div>
               <p className="text-xs text-indigo-600 mt-2">
                 {uploadProgress < 100 
-                  ? 'Large files may take a few moments to upload securely.' 
-                  : 'Analyzing content with AI. This might take a minute depending on file size.'}
+                  ? (language === 'ar' ? 'قد تستغرق الملفات الكبيرة بضع لحظات للرفع بأمان.' : 'Large files may take a few moments to upload securely.') 
+                  : (language === 'ar' ? 'تحليل المحتوى باستخدام الذكاء الاصطناعي. قد يستغرق هذا دقيقة حسب حجم الملف.' : 'Analyzing content with AI. This might take a minute depending on file size.')}
               </p>
             </div>
           )}
@@ -252,7 +254,7 @@ export default function NewContent() {
           {/* Text Extraction UI */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">Extracted Text</label>
+              <label className="block text-sm font-medium text-gray-700">{t('rawText')}</label>
             </div>
             <textarea 
               value={rawText}
@@ -261,10 +263,10 @@ export default function NewContent() {
                 if (type !== 'Text') setType('Text');
               }}
               dir="auto"
-              placeholder="Paste your raw text here or upload/record a file above..."
+              placeholder={t('textPlaceholder')}
               className="w-full h-48 md:h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-mono text-sm resize-y"
             />
-            <p className="text-xs text-gray-500 mt-2">Review and edit the extracted text for accuracy before generating AI content.</p>
+            <p className="text-xs text-gray-500 mt-2">{language === 'ar' ? 'راجع وعدل النص المستخرج للتأكد من دقته قبل توليد المحتوى بالذكاء الاصطناعي.' : 'Review and edit the extracted text for accuracy before generating AI content.'}</p>
           </div>
         </div>
 
@@ -273,14 +275,14 @@ export default function NewContent() {
             onClick={() => navigate('/content')}
             className="px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors w-full sm:w-auto"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button 
             onClick={handleSave}
             disabled={!rawText.trim() || isExtracting || isRecording}
             className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm w-full sm:w-auto"
           >
-            Save & Continue
+            {language === 'ar' ? 'حفظ ومتابعة' : 'Save & Continue'}
           </button>
         </div>
       </div>

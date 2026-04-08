@@ -49,6 +49,9 @@ interface AppState {
 
   hasSeenTutorial: boolean;
   setHasSeenTutorial: (seen: boolean) => void;
+
+  language: 'en' | 'ar';
+  setLanguage: (lang: 'en' | 'ar') => void;
 }
 
 export const useStore = create<AppState>()(
@@ -90,6 +93,9 @@ export const useStore = create<AppState>()(
 
       hasSeenTutorial: false,
       setHasSeenTutorial: (seen) => set({ hasSeenTutorial: seen }),
+
+      language: navigator.language.startsWith('ar') ? 'ar' : 'en',
+      setLanguage: (lang) => set({ language: lang }),
     }),
     {
       name: 'edugenius-storage',

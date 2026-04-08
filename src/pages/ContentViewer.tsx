@@ -5,11 +5,13 @@ import { generateEducationalContent } from '../services/ai';
 import { FileText, Sparkles, Loader2, Download, Trash2, ArrowLeft, KeyRound, Printer, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
+import { useTranslation } from '../lib/i18n';
 
 export default function ContentViewer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { contents, outputs, addOutput, deleteOutput, customApiKey, canUseDefaultKey, incrementUsage } = useStore();
+  const { contents, outputs, addOutput, deleteOutput, customApiKey, canUseDefaultKey, incrementUsage, language } = useStore();
+  const t = useTranslation(language);
   
   const content = contents.find(c => c.id === id);
   const relatedOutputs = outputs.filter(o => o.sourceId === id);
@@ -17,14 +19,14 @@ export default function ContentViewer() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'raw' | string>('raw');
   const [error, setError] = useState<string | null>(null);
-  const [language, setLanguage] = useState('Arabic');
+  const [targetLang, setTargetLang] = useState(language === 'ar' ? 'Arabic' : 'English');
   const [isCopied, setIsCopied] = useState(false);
 
   if (!content) {
     return (
       <div className="p-8 text-center">
-        <h2 className="text-2xl font-bold text-gray-900">Content not found</h2>
-        <Link to="/content" className="text-indigo-600 mt-4 inline-block">Back to My Content</Link>
+        <h2 className="text-2xl font-bold text-gray-900">{language === 'ar' ? 'المحتوى غير موجود' : 'Content not found'}</h2>
+        <Link to="/content" className="text-indigo-600 mt-4 inline-block">{language === 'ar' ? 'العودة إلى المحتوى الخاص بي' : 'Back to My Content'}</Link>
       </div>
     );
   }
@@ -34,7 +36,7 @@ export default function ContentViewer() {
     
     // Check API limits
     if (!customApiKey && !canUseDefaultKey()) {
-      const msg = 'You have reached your daily limit of 3 free generations. Please add your own API key in Settings for unlimited use.';
+      const msg = language === 'ar' ? 'لقد وصلت إلى الحد اليومي المسموح به وهو 3 عمليات توليد مجانية. يرجى إضافة مفتاح API الخاص بك في الإعدادات للاستخدام غير المحدود.' : 'You have reached your daily limit of 3 free generations. Please add your own API key in Settings for unlimited use.';
       setError(msg);
       toast.error(msg);
       return;
@@ -48,10 +50,10 @@ export default function ContentViewer() {
       const apiKey = customApiKey || defaultKey;
       
       if (!apiKey) {
-        throw new Error('API Key is missing. Please add your Gemini API key in Settings.');
+        throw new Error(language === 'ar' ? 'مفتاح API مفقود. يرجى إضافة مفتاح Gemini API الخاص بك في الإعدادات.' : 'API Key is missing. Please add your Gemini API key in Settings.');
       }
 
-      const generatedText = await generateEducationalContent(content.rawText, type, apiKey, language);
+      const generatedText = await generateEducationalContent(content.rawText, type, apiKey, targetLang);
       
       if (!customApiKey) {
         incrementUsage();
@@ -67,10 +69,10 @@ export default function ContentViewer() {
       
       addOutput(newOutput);
       setActiveTab(newOutput.id);
-      toast.success(`${type} generated successfully!`);
+      toast.success(language === 'ar' ? `تم توليد ${type} بنجاح!` : `${type} generated successfully!`);
     } catch (err: any) {
       console.error("Generation failed:", err);
-      const errorMessage = err.message || 'Failed to generate content. Please try again.';
+      const errorMessage = err.message || (language === 'ar' ? 'فشل في توليد المحتوى. يرجى المحاولة مرة أخرى.' : 'Failed to generate content. Please try again.');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -94,10 +96,10 @@ export default function ContentViewer() {
     try {
       await navigator.clipboard.writeText(text);
       setIsCopied(true);
-      toast.success('Copied to clipboard!');
+      toast.success(t('copied'));
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
-      toast.error('Failed to copy text.');
+      toast.error(language === 'ar' ? 'فشل في نسخ النص.' : 'Failed to copy text.');
     }
   };
 
@@ -107,13 +109,13 @@ export default function ContentViewer() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none">
       <div className="flex items-center gap-3 md:gap-4 mb-2 print:hidden">
         <Link to="/content" className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500 shrink-0">
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className={language === 'ar' ? "w-5 h-5 rotate-180" : "w-5 h-5"} />
         </Link>
         <div className="min-w-0">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 truncate">{content.title}</h1>
           <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500 mt-1 flex-wrap">
             <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">{content.type}</span>
-            <span>Extracted on {new Date(content.extractedAt).toLocaleDateString()}</span>
+            <span>{language === 'ar' ? 'تم الاستخراج في' : 'Extracted on'} {new Date(content.extractedAt).toLocaleDateString()}</span>
           </div>
         </div>
       </div>
@@ -121,11 +123,11 @@ export default function ContentViewer() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-start sm:items-center gap-3 print:hidden">
           <div className="flex-1 text-sm">{error}</div>
-          {error.includes('Settings') && (
+          {error.includes('Settings') || error.includes('الإعدادات') ? (
             <Link to="/settings" className="flex items-center gap-1 text-sm font-medium bg-red-100 px-3 py-1.5 rounded hover:bg-red-200 transition-colors shrink-0">
-              <KeyRound className="w-4 h-4" /> Go to Settings
+              <KeyRound className="w-4 h-4" /> {language === 'ar' ? 'الذهاب إلى الإعدادات' : 'Go to Settings'}
             </Link>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -135,21 +137,20 @@ export default function ContentViewer() {
           <div className="bg-white border border-gray-100 rounded-xl p-4 md:p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-600" />
-              AI Generation
+              {language === 'ar' ? 'التوليد بالذكاء الاصطناعي' : 'AI Generation'}
             </h3>
             
             <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Output Language</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">{t('targetLanguage')}</label>
               <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                value={targetLang}
+                onChange={(e) => setTargetLang(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
               >
-                <option value="Arabic">Arabic (العربية)</option>
-                <option value="English">English</option>
-                <option value="French">French (Français)</option>
-                <option value="Spanish">Spanish (Español)</option>
-                <option value="German">German (Deutsch)</option>
+                <option value="Arabic">{t('arabic')}</option>
+                <option value="English">{t('english')}</option>
+                <option value="French">{t('french')}</option>
+                <option value="Spanish">{t('spanish')}</option>
               </select>
             </div>
 
@@ -157,30 +158,30 @@ export default function ContentViewer() {
               <button 
                 onClick={() => handleGenerate('Summary')}
                 disabled={isGenerating}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50"
+                className={language === 'ar' ? "w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50" : "w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50"}
               >
-                Generate Summary
+                {language === 'ar' ? 'توليد ملخص' : 'Generate Summary'}
               </button>
               <button 
                 onClick={() => handleGenerate('LessonPlan')}
                 disabled={isGenerating}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50"
+                className={language === 'ar' ? "w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50" : "w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50"}
               >
-                Create Lesson Plan
+                {language === 'ar' ? 'إنشاء خطة درس' : 'Create Lesson Plan'}
               </button>
               <button 
                 onClick={() => handleGenerate('Quiz')}
                 disabled={isGenerating}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50"
+                className={language === 'ar' ? "w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50" : "w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50"}
               >
-                Generate Quiz
+                {language === 'ar' ? 'توليد اختبار' : 'Generate Quiz'}
               </button>
               <button 
                 onClick={() => handleGenerate('CourseOutline')}
                 disabled={isGenerating}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50"
+                className={language === 'ar' ? "w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50" : "w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors disabled:opacity-50"}
               >
-                Build Full Course
+                {language === 'ar' ? 'بناء مسار تدريبي كامل' : 'Build Full Course'}
               </button>
             </div>
           </div>
@@ -196,7 +197,7 @@ export default function ContentViewer() {
                 activeTab === 'raw' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}
             >
-              Raw Text
+              {t('rawText')}
             </button>
             {relatedOutputs.map(output => (
               <div key={output.id} className="flex items-center group shrink-0">
@@ -214,7 +215,7 @@ export default function ContentViewer() {
                     if (activeTab === output.id) setActiveTab('raw');
                   }}
                   className="px-2 py-3 border-b-2 border-transparent text-gray-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-red-600 transition-all"
-                  aria-label="Delete output"
+                  aria-label={t('delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -227,7 +228,7 @@ export default function ContentViewer() {
             {isGenerating && (
               <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 print:hidden">
                 <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
-                <p className="font-medium animate-pulse text-center px-4">Synthesizing educational content...</p>
+                <p className="font-medium animate-pulse text-center px-4">{language === 'ar' ? 'جاري توليد المحتوى التعليمي...' : 'Synthesizing educational content...'}</p>
               </div>
             )}
             
@@ -241,19 +242,19 @@ export default function ContentViewer() {
 
             {!isGenerating && activeOutput && (
               <div className="relative">
-                <div className="flex flex-wrap items-center gap-2 mb-4 md:absolute md:top-0 md:right-0 md:mb-0 print:hidden">
+                <div className={language === 'ar' ? "flex flex-wrap items-center gap-2 mb-4 md:absolute md:top-0 md:left-0 md:mb-0 print:hidden" : "flex flex-wrap items-center gap-2 mb-4 md:absolute md:top-0 md:right-0 md:mb-0 print:hidden"}>
                   <button 
                     onClick={() => handleCopy(activeOutput.content)}
                     className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
                   >
                     {isCopied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />} 
-                    {isCopied ? 'Copied' : 'Copy'}
+                    {isCopied ? t('copied') : t('copy')}
                   </button>
                   <button 
                     onClick={() => window.print()}
                     className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
                   >
-                    <Printer className="w-4 h-4" /> Print
+                    <Printer className="w-4 h-4" /> {t('print')}
                   </button>
                   <button 
                     onClick={() => handleExport(activeOutput.content, `${content.title}-${activeOutput.type}`)}
