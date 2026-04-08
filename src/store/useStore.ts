@@ -71,10 +71,7 @@ export const useStore = create<AppState>()(
         }
       },
       canUseDefaultKey: () => {
-        const today = format(new Date(), 'yyyy-MM-dd');
-        const { usage } = get();
-        if (usage.date !== today) return true;
-        return usage.count < 5;
+        return true; // Removed artificial limit for professional use
       },
 
       contents: [],

@@ -72,8 +72,8 @@ export const translations = {
     apiKeyPlaceholder: 'Enter your API key...',
     saveSettings: 'Save Settings',
     usageLimits: 'Usage Limits',
-    usageDesc1: 'The default API key allows for 5 generations per day. Today\'s usage: ',
-    usageDesc2: 'For unlimited usage, please provide your own free Google Gemini API key.',
+    usageDesc1: 'The default API key is now configured for high-capacity professional use. Today\'s usage: ',
+    usageDesc2: 'If you experience any rate limits, you can still provide your own Google Gemini API key.',
     
     // Feedback
     rateTitle: 'Rate EduGenius AI',
@@ -87,6 +87,7 @@ export const translations = {
     print: 'Print',
     copy: 'Copy',
     copied: 'Copied!',
+    share: 'Share',
     noOutputs: 'No outputs generated yet.',
     generateNew: 'Generate New Output',
   },
@@ -163,8 +164,8 @@ export const translations = {
     apiKeyPlaceholder: 'أدخل مفتاح API الخاص بك...',
     saveSettings: 'حفظ الإعدادات',
     usageLimits: 'حدود الاستخدام',
-    usageDesc1: 'يسمح مفتاح API الافتراضي بـ 5 عمليات توليد يومياً. الاستخدام اليوم: ',
-    usageDesc2: 'للاستخدام غير المحدود، يرجى توفير مفتاح Google Gemini API مجاني خاص بك.',
+    usageDesc1: 'تم تكوين مفتاح API الافتراضي الآن للاستخدام الاحترافي بسعة عالية. الاستخدام اليوم: ',
+    usageDesc2: 'إذا واجهت أي قيود على الاستخدام، فلا يزال بإمكانك توفير مفتاح Google Gemini API الخاص بك.',
     
     // Feedback
     rateTitle: 'تقييم EduGenius AI',
@@ -178,6 +179,7 @@ export const translations = {
     print: 'طباعة',
     copy: 'نسخ',
     copied: 'تم النسخ!',
+    share: 'مشاركة',
     noOutputs: 'لم يتم توليد أي مخرجات بعد.',
     generateNew: 'توليد مخرج جديد',
   }

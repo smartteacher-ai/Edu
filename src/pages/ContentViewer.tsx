@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { generateEducationalContent } from '../services/ai';
-import { FileText, Sparkles, Loader2, Download, Trash2, ArrowLeft, KeyRound, Printer, Copy, Check } from 'lucide-react';
+import { FileText, Sparkles, Loader2, Download, Trash2, ArrowLeft, KeyRound, Printer, Copy, Check, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 import { useTranslation } from '../lib/i18n';
@@ -34,9 +34,9 @@ export default function ContentViewer() {
   const handleGenerate = async (type: 'Summary' | 'LessonPlan' | 'Quiz' | 'CourseOutline') => {
     setError(null);
     
-    // Check API limits
+    // Check API limits (now unlimited by default, but we keep the check in case we want to re-enable)
     if (!customApiKey && !canUseDefaultKey()) {
-      const msg = language === 'ar' ? 'لقد وصلت إلى الحد اليومي المسموح به وهو 5 عمليات توليد مجانية. يرجى إضافة مفتاح API الخاص بك في الإعدادات للاستخدام غير المحدود.' : 'You have reached your daily limit of 5 free generations. Please add your own API key in Settings for unlimited use.';
+      const msg = language === 'ar' ? 'لقد وصلت إلى الحد اليومي المسموح به. يرجى إضافة مفتاح API الخاص بك في الإعدادات.' : 'You have reached your daily limit. Please add your own API key in Settings.';
       setError(msg);
       toast.error(msg);
       return;
@@ -100,6 +100,26 @@ export default function ContentViewer() {
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
       toast.error(language === 'ar' ? 'فشل في نسخ النص.' : 'Failed to copy text.');
+    }
+  };
+
+  const handleShare = async (text: string, title: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${title} - EduGenius AI`,
+          text: text,
+        });
+        toast.success(language === 'ar' ? 'تمت المشاركة بنجاح!' : 'Shared successfully!');
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          toast.error(language === 'ar' ? 'فشل في المشاركة.' : 'Failed to share.');
+        }
+      }
+    } else {
+      // Fallback to copy if Web Share API is not supported
+      handleCopy(text);
+      toast.info(language === 'ar' ? 'تم نسخ النص (المشاركة غير مدعومة في متصفحك).' : 'Text copied (Share not supported on your browser).');
     }
   };
 
@@ -243,6 +263,12 @@ export default function ContentViewer() {
             {!isGenerating && activeOutput && (
               <div className="relative">
                 <div className={language === 'ar' ? "flex flex-wrap items-center gap-2 mb-4 md:absolute md:top-0 md:left-0 md:mb-0 print:hidden" : "flex flex-wrap items-center gap-2 mb-4 md:absolute md:top-0 md:right-0 md:mb-0 print:hidden"}>
+                  <button 
+                    onClick={() => handleShare(activeOutput.content, content.title)}
+                    className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                  >
+                    <Share2 className="w-4 h-4" /> {t('share')}
+                  </button>
                   <button 
                     onClick={() => handleCopy(activeOutput.content)}
                     className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
