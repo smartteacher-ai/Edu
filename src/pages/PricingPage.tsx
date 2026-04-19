@@ -1,6 +1,7 @@
 import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function PricingPage() {
   const { user, signInWithGoogle } = useAuth();
@@ -13,9 +14,7 @@ export default function PricingPage() {
       }
       navigate('/app/profile');
     } catch (error: any) {
-      if (error?.code !== 'auth/popup-closed-by-user') {
-        console.error('Authentication error:', error);
-      }
+      toast.error(error.message || 'Authentication failed. Please try again.');
     }
   };
 

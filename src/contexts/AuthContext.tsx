@@ -132,8 +132,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      if (error?.code === 'auth/popup-closed-by-user') {
+        throw new Error('Login popup was closed before finishing. Please try again.');
+      } else if (error?.code === 'auth/popup-blocked') {
+        throw new Error('Your browser blocked the login popup. Please allow popups for this site.');
+      } else {
+        throw error;
+      }
+    }
   };
 
   const logout = async () => {

@@ -1,23 +1,27 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, FileText, CheckCircle2, Zap, Play, LayoutDashboard, Sparkles } from 'lucide-react';
+import { ArrowRight, FileText, CheckCircle2, Zap, Play, LayoutDashboard, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 export default function LandingPage() {
   const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleStart = async () => {
     try {
       if (user) {
         navigate('/app');
       } else {
+        setIsLoggingIn(true);
         await signInWithGoogle();
         navigate('/app');
       }
     } catch (error: any) {
-      if (error?.code !== 'auth/popup-closed-by-user') {
-        console.error('Authentication error:', error);
-      }
+      toast.error(error.message || 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -44,9 +48,12 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button 
               onClick={handleStart}
-              className="w-full sm:w-auto px-8 py-4 bg-gray-900 text-white rounded-xl font-semibold text-lg hover:bg-gray-800 hover:-translate-y-0.5 transition-all shadow-xl shadow-gray-900/10 flex items-center justify-center gap-2 group"
+              disabled={isLoggingIn}
+              className="w-full sm:w-auto px-8 py-4 bg-gray-900 text-white rounded-xl font-semibold text-lg hover:bg-gray-800 hover:-translate-y-0.5 transition-all shadow-xl shadow-gray-900/10 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Start for free <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              {isLoggingIn && <Loader2 className="w-5 h-5 animate-spin" />}
+              {user ? 'Go to App' : 'Start for free'} 
+              {!isLoggingIn && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
             </button>
             <a href="#demo" className="w-full sm:w-auto px-8 py-4 bg-white text-gray-900 border border-gray-200 rounded-xl font-semibold text-lg hover:border-gray-300 transition-colors flex items-center justify-center gap-2">
               <Play className="w-5 h-5" /> Watch demo

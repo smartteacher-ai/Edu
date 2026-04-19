@@ -1,23 +1,27 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 export default function LandingLayout() {
   const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleAuth = async () => {
     try {
       if (user) {
         navigate('/app');
       } else {
+        setIsLoggingIn(true);
         await signInWithGoogle();
         navigate('/app');
       }
     } catch (error: any) {
-      if (error?.code !== 'auth/popup-closed-by-user') {
-        console.error('Authentication error:', error);
-      }
+      toast.error(error.message || 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -42,15 +46,19 @@ export default function LandingLayout() {
           <div className="flex items-center gap-3">
             <button 
               onClick={handleAuth}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              disabled={isLoggingIn}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
+              {isLoggingIn && <Loader2 className="w-4 h-4 animate-spin" />}
               {user ? 'Go to Dashboard' : 'Log in'}
             </button>
             {!user && (
               <button 
                 onClick={handleAuth}
-                className="hidden md:inline-flex bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                disabled={isLoggingIn}
+                className="hidden md:inline-flex bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed items-center gap-2"
               >
+                {isLoggingIn && <Loader2 className="w-4 h-4 animate-spin" />}
                 Get Started Free
               </button>
             )}
