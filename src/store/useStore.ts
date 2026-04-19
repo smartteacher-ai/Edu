@@ -11,6 +11,8 @@ export interface ContentSource {
   type: ContentType;
   rawText: string;
   extractedAt: string;
+  isFavorite?: boolean;
+  tags?: string[];
 }
 
 export interface EducationalOutput {
@@ -19,6 +21,7 @@ export interface EducationalOutput {
   type: 'Summary' | 'LessonPlan' | 'Quiz' | 'CourseOutline';
   content: string;
   createdAt: string;
+  isFavorite?: boolean;
 }
 
 export interface Feedback {
@@ -52,6 +55,12 @@ interface AppState {
 
   language: 'en' | 'ar';
   setLanguage: (lang: 'en' | 'ar') => void;
+
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
+
+  globalFontSize: number;
+  setGlobalFontSize: (size: number) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -93,6 +102,12 @@ export const useStore = create<AppState>()(
 
       language: navigator.language.startsWith('ar') ? 'ar' : 'en',
       setLanguage: (lang) => set({ language: lang }),
+
+      theme: 'light',
+      setTheme: (theme) => set({ theme }),
+
+      globalFontSize: 14,
+      setGlobalFontSize: (size) => set({ globalFontSize: size }),
     }),
     {
       name: 'edugenius-storage',

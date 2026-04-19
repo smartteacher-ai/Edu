@@ -2,6 +2,7 @@ export const translations = {
   en: {
     // Sidebar
     dashboard: 'Dashboard',
+    favorite: 'Favorite',
     myContent: 'My Content',
     settings: 'Settings',
     showTutorial: 'Show Tutorial',
@@ -94,6 +95,7 @@ export const translations = {
   ar: {
     // Sidebar
     dashboard: 'لوحة التحكم',
+    favorite: 'مفضلة',
     myContent: 'المحتوى الخاص بي',
     settings: 'الإعدادات',
     showTutorial: 'عرض الدليل',

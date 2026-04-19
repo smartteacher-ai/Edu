@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definition
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function hasVerifiedEmail() { return request.auth.token.email_verified == true; }
+
+    // Validation Blueprint for User
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'plan', 'usageCount', 'lastUsageDate', 'createdAt', 'updatedAt'])
+        && data.size() >= 6 && data.size() <= 9
+        && data.email is string && data.email.size() <= 200
+        && data.plan is string && data.plan in ['free', 'pro', 'team']
+        && data.usageCount is number
+        && data.lastUsageDate is string && data.lastUsageDate.size() <= 64
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64
+        && data.get('displayName', '') is string && data.get('displayName', '').size() <= 100
+        && data.get('photoURL', '') is string && data.get('photoURL', '').size() <= 500
+        && data.get('emailVerified', false) is bool;
+    }
+
+    // Validation Blueprint for Content
+    function isValidContent(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'type', 'rawText', 'extractedAt', 'isFavorite'])
+        && data.size() == 7
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() <= 250
+        && data.type is string && data.type in ['Audio', 'PDF', 'Word', 'Text']
+        && data.rawText is string && data.rawText.size() <= 1048576 // 1MB raw text limit in characters
+        && data.extractedAt is string && data.extractedAt.size() <= 64
+        && data.isFavorite is bool;
+    }
+
+    // Validation Blueprint for Output
+    function isValidOutput(data) {
+      return data.keys().hasAll(['id', 'userId', 'sourceId', 'type', 'content', 'createdAt', 'isFavorite'])
+        && data.size() == 7
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.sourceId is string && data.sourceId.size() <= 128
+        && data.type is string && data.type in ['Summary', 'LessonPlan', 'Quiz', 'CourseOutline']
+        && data.content is string && data.content.size() <= 1048576
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.isFavorite is bool;
+    }
+
+    // /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // No list for users
+
+      allow create: if isOwner(userId)
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().plan == 'free' // Users start free, paid via backend/admin func ideally, but we let them create their own default profile
+                    && incoming().usageCount == 0;
+
+      allow update: if isOwner(userId)
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'plan', 'usageCount', 'lastUsageDate', 'updatedAt'])
+                    && incoming().email == existing().email // Cannot change email
+                    && incoming().createdAt == existing().createdAt; // Immutable
+                    
+      allow delete: if false; // Users cannot delete their profile from client
+    }
+
+    // /contents/{contentId}
+    match /contents/{contentId} {
+      // Secure list query
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Single doc read
+      allow get: if isSignedIn() && isValidId(contentId) && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+                    && isValidId(contentId)
+                    && isValidContent(incoming())
+                    && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+
+      allow update: if isSignedIn()
+                    && isValidId(contentId)
+                    && isValidContent(incoming())
+                    && existing().userId == request.auth.uid // Ownership check
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'isFavorite']) // Only allow updating title and favorite state
+                    && incoming().userId == existing().userId
+                    && incoming().type == existing().type
+                    && incoming().extractedAt == existing().extractedAt
+                    && incoming().rawText == existing().rawText;
+
+      allow delete: if isSignedIn()
+                    && isValidId(contentId)
+                    && existing().userId == request.auth.uid;
+    }
+
+    // /outputs/{outputId}
+    match /outputs/{outputId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(outputId) && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+                    && isValidId(outputId)
+                    && isValidOutput(incoming())
+                    // Relational sync - verify the parent source exists and is owned by the user
+                    && exists(/databases/$(database)/documents/contents/$(incoming().sourceId))
+                    && get(/databases/$(database)/documents/contents/$(incoming().sourceId)).data.userId == request.auth.uid;
+
+      allow update: if isSignedIn()
+                    && isValidId(outputId)
+                    && isValidOutput(incoming())
+                    && existing().userId == request.auth.uid
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['isFavorite']) // only allow updating favorite state for outputs
+                    && incoming().userId == existing().userId
+                    && incoming().sourceId == existing().sourceId
+                    && incoming().type == existing().type
+                    && incoming().content == existing().content
+                    && incoming().createdAt == existing().createdAt;
+
+      allow delete: if isSignedIn()
+                    && isValidId(outputId)
+                    && existing().userId == request.auth.uid;
+    }
+    // Validation Blueprint for Activity Logs
+    function isValidActivityLog(data) {
+      return data.keys().hasAll(['userId', 'action', 'createdAt'])
+        && data.size() >= 3 && data.size() <= 4
+        && data.userId is string && data.userId == request.auth.uid
+        && data.action is string && data.action.size() <= 100
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && (data.keys().hasAll(['metadata']) ? data.metadata is map : true);
+    }
+
+    // /activity_logs/{logId}
+    match /activity_logs/{logId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(logId) && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+                    && isValidId(logId)
+                    && isValidActivityLog(incoming())
+                    && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+
+      allow update: if false; // Logs are immutable
+      allow delete: if false; // Logs are immortal
+    }
+  }
+}

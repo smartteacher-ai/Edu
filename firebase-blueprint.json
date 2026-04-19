@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and subscription data",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "emailVerified": { "type": "boolean" },
+        "photoURL": { "type": "string" },
+        "plan": { "type": "string", "enum": ["free", "pro", "team"] },
+        "usageCount": { "type": "number" },
+        "lastUsageDate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["email", "plan", "usageCount", "lastUsageDate", "createdAt", "updatedAt"]
+    },
+    "Content": {
+      "title": "Content",
+      "description": "Raw uploaded/extracted educational content",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["Audio", "PDF", "Word", "Text"] },
+        "rawText": { "type": "string" },
+        "extractedAt": { "type": "string" },
+        "isFavorite": { "type": "boolean" }
+      },
+      "required": ["userId", "title", "type", "rawText", "extractedAt", "isFavorite"]
+    },
+    "Output": {
+      "title": "Output",
+      "description": "Generated educational materials",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "type": { "type": "string", "enum": ["Summary", "LessonPlan", "Quiz", "CourseOutline"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "isFavorite": { "type": "boolean" }
+      },
+      "required": ["userId", "sourceId", "type", "content", "createdAt", "isFavorite"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile documents"
+    },
+    "/contents/{contentId}": {
+      "schema": { "$ref": "#/entities/Content" },
+      "description": "Uploaded content documents"
+    },
+    "/outputs/{outputId}": {
+      "schema": { "$ref": "#/entities/Output" },
+      "description": "Generated output documents"
+    }
+  }
+}

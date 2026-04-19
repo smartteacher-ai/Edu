@@ -13,56 +13,55 @@ If it is audio, transcribe the speech accurately. If it is a document, extract t
 CRITICAL INSTRUCTION FOR ARABIC: If the file contains Arabic text, including Classical Arabic (Fusha), Quranic verses, or Colloquial Arabic (Amiya), you MUST ensure the transcription is highly accurate. Preserve the original language, diacritics (tashkeel) if present, and formatting perfectly. Do not translate it to English unless requested.
 Do not add any conversational filler, markdown formatting (unless present in the original), or summaries. Just output the raw text.`;
 
-    // For files > 15MB, we MUST use the File API to avoid browser memory crashes and API inline limits
-    if (file.size > 15 * 1024 * 1024) {
-      // 1. Initiate upload via REST API
-      const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
-      const initRes = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'X-Goog-Upload-Protocol': 'resumable',
-          'X-Goog-Upload-Command': 'start',
-          'X-Goog-Upload-Header-Content-Length': file.size.toString(),
-          'X-Goog-Upload-Header-Content-Type': file.type,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ file: { displayName: file.name } })
-      });
+    // For files > 2MB, we use the File API to avoid browser memory crashes and API inline limits
+    if (file.size > 2 * 1024 * 1024) {
+      if (onProgress) onProgress(10); // Fake initial progress
       
-      if (!initRes.ok) throw new Error('Failed to initiate file upload');
-      const uploadUrlResumable = initRes.headers.get('X-Goog-Upload-URL');
-      if (!uploadUrlResumable) throw new Error('Failed to get upload URL');
-      
-      // 2. Upload the file chunks with progress tracking
-      const fileInfo = await new Promise<any>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', uploadUrlResumable, true);
-        xhr.setRequestHeader('Content-Length', file.size.toString());
-        xhr.setRequestHeader('X-Goog-Upload-Offset', '0');
-        xhr.setRequestHeader('X-Goog-Upload-Command', 'upload, finalize');
-        
-        if (onProgress) {
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round((event.loaded / event.total) * 100);
-              onProgress(percentComplete);
-            }
-          };
-        }
+      let uploadInterval: any;
+      if (onProgress) {
+        let fakeProgress = 10;
+        uploadInterval = setInterval(() => {
+          fakeProgress += Math.random() * 5;
+          if (fakeProgress > 90) fakeProgress = 90;
+          onProgress(Math.floor(fakeProgress));
+        }, 1000);
+      }
 
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+      let fileUri: string;
+      try {
+        const uploadResult = await ai.files.upload({
+          file: file,
+          config: {
+            mimeType: file.type,
+            displayName: file.name.replace(/\.[^/.]+$/, "") // Remove extension
           }
-        };
+        });
 
-        xhr.onerror = () => reject(new Error('Network error during upload'));
-        xhr.send(file);
-      });
-
-      const fileUri = fileInfo.file.uri;
+        // Poll for ACTIVE state, as large files like audio or PDF require server-side processing
+        let currentFile = await ai.files.get({ name: uploadResult.name });
+        let pollProgress = 90;
+        while (currentFile.state === 'PROCESSING') {
+          if (onProgress) {
+             pollProgress = Math.min(99, pollProgress + 1);
+             onProgress(pollProgress); 
+          }
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          currentFile = await ai.files.get({ name: uploadResult.name });
+        }
+        
+        if (currentFile.state === 'FAILED') {
+          throw new Error('File processing failed on the Gemini server.');
+        }
+        
+        // uploadResult is a File object from the SDK, which has a `uri` property and a `name` property.
+        fileUri = currentFile.uri || uploadResult.uri || uploadResult.name;
+        
+        if (onProgress) onProgress(95);
+      } catch (err: any) {
+        throw new Error(`Upload failed: ${err.message}`);
+      } finally {
+        if (uploadInterval) clearInterval(uploadInterval);
+      }
 
       // 3. Generate content using the uploaded file URI
       let attempt = 0;
@@ -88,14 +87,21 @@ Do not add any conversational filler, markdown formatting (unless present in the
         } catch (error: any) {
           lastError = error;
           const errorMessage = error?.message || '';
+          const isRateLimited = errorMessage.includes('429') || error?.status === 429 || errorMessage.toLowerCase().includes('quota');
           const isHighDemand = errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('high demand') || error?.status === 503 || error?.status === 'UNAVAILABLE';
+          const isRpcError = errorMessage.includes('Rpc failed') || errorMessage.includes('xhr error');
           
-          if (isHighDemand && attempt < maxRetries - 1) {
+          if ((isHighDemand || isRateLimited || isRpcError) && attempt < maxRetries - 1) {
             attempt++;
-            const waitTime = Math.pow(2, attempt) * 1000;
-            console.log(`Extraction model overloaded. Waiting ${waitTime}ms before retrying...`);
+            const baseWaitTime = Math.pow(2, attempt) * 1000;
+            const jitter = Math.random() * 1000;
+            const waitTime = baseWaitTime + jitter;
+            console.log(`Extraction model overloaded or network error. Waiting ${Math.round(waitTime)}ms before retrying...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
           } else {
+            if (isRpcError) {
+              throw new Error("Connection dropped by the AI service (RPC/XHR error). The file may be too large for the free AI Studio proxy. Try a smaller file, or add your own Google Gemini API key in Settings.");
+            }
             throw error;
           }
         }
@@ -144,14 +150,21 @@ Do not add any conversational filler, markdown formatting (unless present in the
         } catch (error: any) {
           lastError = error;
           const errorMessage = error?.message || '';
+          const isRateLimited = errorMessage.includes('429') || error?.status === 429 || errorMessage.toLowerCase().includes('quota');
           const isHighDemand = errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('high demand') || error?.status === 503 || error?.status === 'UNAVAILABLE';
+          const isRpcError = errorMessage.includes('Rpc failed') || errorMessage.includes('xhr error');
           
-          if (isHighDemand && attempt < maxRetries - 1) {
+          if ((isHighDemand || isRateLimited || isRpcError) && attempt < maxRetries - 1) {
             attempt++;
-            const waitTime = Math.pow(2, attempt) * 1000;
-            console.log(`Extraction model overloaded. Waiting ${waitTime}ms before retrying...`);
+            const baseWaitTime = Math.pow(2, attempt) * 1000;
+            const jitter = Math.random() * 1000;
+            const waitTime = baseWaitTime + jitter;
+            console.log(`Extraction model overloaded or network error. Waiting ${Math.round(waitTime)}ms before retrying...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
           } else {
+            if (isRpcError) {
+              throw new Error("Connection dropped by the AI service (RPC/XHR error). The file may be too large for the free AI Studio proxy. Try a smaller file, or add your own Google Gemini API key in Settings.");
+            }
             throw error;
           }
         }
@@ -224,17 +237,21 @@ export const generateEducationalContent = async (
                            errorMessage.includes('high demand') ||
                            error?.status === 503 || 
                            error?.status === 'UNAVAILABLE';
+      const isRpcError = errorMessage.includes('Rpc failed') || errorMessage.includes('xhr error');
       
-      if ((isHighDemand || isRateLimited) && attempt < maxRetries - 1) {
+      if ((isHighDemand || isRateLimited || isRpcError) && attempt < maxRetries - 1) {
         attempt++;
         // Exponential backoff with jitter: (2^attempt * 1000ms) + random jitter up to 1000ms
         const baseWaitTime = Math.pow(2, attempt) * 1000;
         const jitter = Math.random() * 1000;
         const waitTime = baseWaitTime + jitter;
         
-        console.log(`Model overloaded or rate limited. Waiting ${Math.round(waitTime)}ms before retrying with ${attempt === maxRetries - 1 ? 'fallback model' : 'same model'}...`);
+        console.log(`Model overloaded, rate limited, or network error. Waiting ${Math.round(waitTime)}ms before retrying with ${attempt === maxRetries - 1 ? 'fallback model' : 'same model'}...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       } else {
+        if (isRpcError) {
+            throw new Error("Connection dropped by the AI service (RPC/XHR error). Ask the user to check their network connection or use a smaller prompt.");
+        }
         // If it's not a high demand/rate limit error, or we've exhausted retries, throw immediately
         throw new Error(error.message || "An error occurred during generation.");
       }

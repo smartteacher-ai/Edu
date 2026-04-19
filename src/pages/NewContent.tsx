@@ -1,14 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, ContentType } from '../store/useStore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { extractTextFromMedia } from '../services/ai';
 import { UploadCloud, FileText, Mic, FileType2, Loader2, Square, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from '../lib/i18n';
+import { saveContentToDB } from '../services/db';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function NewContent() {
   const navigate = useNavigate();
-  const { addContent, customApiKey, language } = useStore();
+  const { customApiKey, language } = useStore();
+  const { user, profile, logActivity } = useAuth();
   const t = useTranslation(language);
   
   const [title, setTitle] = useState('');
@@ -84,9 +89,21 @@ export default function NewContent() {
   };
 
   const processFile = async (file: File) => {
-    // Check file size (limit to 500MB)
-    if (file.size > 500 * 1024 * 1024) {
-      toast.error(language === 'ar' ? 'الملف كبير جداً. يرجى رفع ملف أصغر من 500 ميجابايت.' : "File is too large. Please upload a file smaller than 500MB.");
+    // Check Free Plan Limits (max 3 files total)
+    if (profile?.plan === 'free') {
+      const q = query(collection(db, 'contents'), where('userId', '==', user?.uid));
+      const myDocs = await getDocs(q);
+      if (myDocs.size >= 3) {
+        toast.error(language === 'ar' ? 'لقد وصلت إلى الحد الأقصى المسموح به للملفات (3). قم بالترقية للعدد غير المحدود.' : 'You have reached the maximum file limit (3) on the Free plan. Upgrade for unlimited files.');
+        return;
+      }
+    }
+
+    const maxSize = profile?.plan === 'free' ? 50 * 1024 * 1024 : 500 * 1024 * 1024;
+    
+    // Check file size limit
+    if (file.size > maxSize) {
+      toast.error(language === 'ar' ? `حجم الملف كبير جداً. الحد الأقصى هو ${profile?.plan === 'free' ? '50 م.ب' : '500 م.ب'}.` : `File is too large. Max size is ${profile?.plan === 'free' ? '50MB' : '500MB'}.`);
       return;
     }
 
@@ -95,7 +112,10 @@ export default function NewContent() {
     if (file.type === 'text/plain') {
       setType('Text');
       const reader = new FileReader();
-      reader.onload = (e) => setRawText(e.target?.result as string);
+      reader.onload = (e) => {
+        setRawText(e.target?.result as string);
+        logActivity('uploaded_text_file', { fileName: file.name, size: file.size });
+      };
       reader.readAsText(file);
     } else if (file.type === 'application/pdf' || file.type.startsWith('audio/')) {
       setType(file.type === 'application/pdf' ? 'PDF' : 'Audio');
@@ -116,6 +136,7 @@ export default function NewContent() {
         });
         setRawText(extractedText);
         toast.success(language === 'ar' ? 'تم استخراج النص بنجاح!' : "Text extracted successfully!");
+        await logActivity('extracted_text_from_media', { type: file.type, size: file.size, fileName: file.name });
       } catch (error: any) {
         toast.error(error.message || (language === 'ar' ? 'فشل في استخراج النص من الملف.' : "Failed to extract text from file."));
         setRawText("");
@@ -136,9 +157,14 @@ export default function NewContent() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!rawText.trim()) {
       toast.error(language === 'ar' ? 'يرجى إدخال بعض النص أو رفع ملف لاستخراج المحتوى.' : 'Please enter some text or upload a file to extract content.');
+      return;
+    }
+    
+    if (!user) {
+      toast.error('You must be logged in to save content.');
       return;
     }
     
@@ -150,11 +176,18 @@ export default function NewContent() {
       type,
       rawText,
       extractedAt: new Date().toISOString(),
+      isFavorite: false
     };
     
-    addContent(newContent);
-    toast.success(language === 'ar' ? 'تم حفظ المحتوى بنجاح!' : 'Content saved successfully!');
-    navigate(`/content/${newContent.id}`);
+    try {
+      await saveContentToDB({ ...newContent, userId: user.uid } as any, user.uid);
+      await logActivity('saved_content', { contentId: newContent.id, type: newContent.type });
+      toast.success(language === 'ar' ? 'تم حفظ المحتوى بنجاح!' : 'Content saved successfully!');
+      navigate(`/app/content/${newContent.id}`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to save to database.');
+    }
   };
 
   return (
@@ -180,9 +213,12 @@ export default function NewContent() {
           {/* Upload and Record Area */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div 
-              className="border-2 border-dashed border-gray-300 rounded-xl p-6 md:p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer flex flex-col items-center justify-center h-full"
+              className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 md:p-8 text-center hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer flex flex-col items-center justify-center h-full relative overflow-hidden"
               onClick={() => fileInputRef.current?.click()}
             >
+               <div className="absolute top-0 right-0 left-0 bg-indigo-50 dark:bg-indigo-900/30 text-[10px] sm:text-xs font-semibold py-1.5 px-3 text-indigo-700 dark:text-indigo-300 flex justify-center items-center border-b border-indigo-100 dark:border-indigo-800/50 uppercase tracking-wide">
+                 {profile?.plan === 'free' ? (language === 'ar' ? 'الخطة المجانية: الحد الأقصى 50 م.ب للملف، 3 ملفات كلياً' : 'Free Plan: Max 50MB per file, 3 Files total limit') : (language === 'ar' ? 'الباقات المدفوعة: حد أقصى 500 م.ب وملفات لا محدودة' : 'Paid Plan: Max 500MB per file, Unlimited Files')}
+               </div>
               <input 
                 type="file" 
                 ref={fileInputRef} 

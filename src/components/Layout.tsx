@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Settings, BookOpen, Menu, X, Star, HelpCircle, Globe } from 'lucide-react';
+import { LayoutDashboard, FileText, User, BookOpen, Menu, X, Star, HelpCircle, Globe, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useStore } from '../store/useStore';
 import { toast } from 'sonner';
 import { Joyride, EventData, STATUS, Step } from 'react-joyride';
 import { useTranslation } from '../lib/i18n';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout() {
   const location = useLocation();
@@ -17,8 +18,9 @@ export default function Layout() {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
   
-  const { addFeedback, hasSeenTutorial, setHasSeenTutorial, language, setLanguage } = useStore();
+  const { addFeedback, hasSeenTutorial, setHasSeenTutorial, language, setLanguage, theme, setTheme } = useStore();
   const t = useTranslation(language);
+  const { profile } = useAuth(); // getting user profile
 
   const [runTutorial, setRunTutorial] = useState(false);
 
@@ -27,6 +29,15 @@ export default function Layout() {
     document.documentElement.lang = language;
   }, [language]);
 
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // Make sure we have proper CSS variables or Tailwind configured for dark mode
   useEffect(() => {
     if (!hasSeenTutorial) {
       setRunTutorial(true);
@@ -51,13 +62,8 @@ export default function Layout() {
       placement: language === 'ar' ? 'left' : 'right',
     },
     {
-      target: '.nav-settings',
-      content: t('tutSettings'),
-      placement: language === 'ar' ? 'left' : 'right',
-    },
-    {
-      target: '.nav-rate',
-      content: t('tutRate'),
+      target: '.nav-profile',
+      content: language === 'ar' ? 'قم بإدارة اشتراكك وحسابك هنا' : 'Manage your subscription and account here',
       placement: language === 'ar' ? 'left' : 'right',
     },
   ];
@@ -81,10 +87,15 @@ export default function Layout() {
     setLanguage(language === 'en' ? 'ar' : 'en');
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
   const navItems = [
-    { name: t('dashboard'), path: '/', icon: LayoutDashboard, className: 'nav-dashboard' },
-    { name: t('myContent'), path: '/content', icon: FileText, className: 'nav-content' },
-    { name: t('settings'), path: '/settings', icon: Settings, className: 'nav-settings' },
+    { name: t('dashboard'), path: '/app', icon: LayoutDashboard, className: 'nav-dashboard' },
+    { name: t('myContent'), path: '/app/content', icon: FileText, className: 'nav-content' },
+    { name: language === 'ar' ? 'سجل النشاط' : 'Activity Log', path: '/app/activity', icon: BookOpen, className: 'nav-activity' },
+    { name: language === 'ar' ? 'الملف الشخصي' : 'Profile', path: '/app/profile', icon: User, className: 'nav-profile' },
   ];
 
   const closeMenu = () => setIsMobileMenuOpen(false);
@@ -110,7 +121,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="flex h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 font-sans overflow-hidden selection:bg-indigo-100 selection:text-indigo-900" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <Joyride
         steps={tutorialSteps}
         run={runTutorial}
@@ -131,14 +142,21 @@ export default function Layout() {
       />
 
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between bg-indigo-900 text-white p-4 print:hidden w-full absolute top-0 z-40">
+      <div className="md:hidden flex items-center justify-between bg-gray-900 text-white p-4 print:hidden w-full absolute top-0 z-40">
         <div className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6 text-indigo-300" />
-          <span className="text-lg font-bold tracking-tight">EduGenius AI</span>
+          <div className="bg-indigo-600 p-1.5 rounded-lg text-white">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <span className="text-lg font-bold tracking-tight">CourseCraft<span className="text-indigo-400">.ai</span></span>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-1">
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleTheme} className="p-1 px-2 hover:bg-gray-800 rounded">
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-1">
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Overlay for mobile */}
@@ -151,19 +169,25 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 z-50 w-64 bg-indigo-900 text-indigo-100 flex flex-col transition-transform duration-300 ease-in-out print:hidden",
+        "fixed inset-y-0 z-50 w-64 bg-gray-900 border-r border-gray-800 text-gray-100 flex flex-col transition-transform duration-300 ease-in-out print:hidden",
         language === 'ar' ? "right-0" : "left-0",
         "md:relative md:translate-x-0",
         isMobileMenuOpen ? "translate-x-0" : (language === 'ar' ? "translate-x-full" : "-translate-x-full")
       )}>
         <div className="p-6 flex items-center gap-3">
-          <BookOpen className="w-8 h-8 text-indigo-300" />
-          <span className="text-xl font-bold text-white tracking-tight">EduGenius AI</span>
+          <div className="bg-indigo-600 p-1.5 rounded-lg text-white">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <span className="text-xl font-bold text-white tracking-tight">CourseCraft<span className="text-indigo-400">.ai</span></span>
         </div>
         <nav className="flex-1 px-4 space-y-2 mt-4">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+            // Strict exact match for dashboard (/app) vs nested (/app/something)
+            const isActive = item.path === '/app' 
+              ? location.pathname === '/app' || location.pathname === '/app/'
+              : location.pathname.startsWith(item.path);
+            
             return (
               <Link
                 key={item.name}
@@ -172,7 +196,7 @@ export default function Layout() {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                   item.className,
-                  isActive ? "bg-indigo-800 text-white font-medium" : "hover:bg-indigo-800/50 text-indigo-200"
+                  isActive ? "bg-indigo-600 text-white font-medium" : "hover:bg-gray-800 text-gray-300"
                 )}
               >
                 <Icon className="w-5 h-5" />
@@ -183,33 +207,39 @@ export default function Layout() {
         </nav>
         
         <div className="p-4 mt-auto space-y-2">
-          <button 
-            onClick={toggleLanguage}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-800/30 hover:bg-indigo-800/60 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
-          >
-            <Globe className="w-4 h-4 text-indigo-300" />
-            {language === 'ar' ? 'English' : 'العربية'}
-          </button>
+          {/* Pro / Free Badge */}
+          {profile && (
+            <div className="mb-4 px-4 py-3 bg-gray-800 rounded-lg flex items-center justify-between border border-gray-700">
+              <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Plan</span>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${profile.plan === 'pro' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-gray-700 text-gray-300'}`}>
+                {profile.plan.toUpperCase()}
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              onClick={toggleLanguage}
+              className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-2 py-2.5 rounded-lg transition-colors text-sm font-medium"
+            >
+              <Globe className="w-4 h-4 text-gray-400" />
+              {language === 'ar' ? 'English' : 'العربية'}
+            </button>
+            <button 
+              onClick={toggleTheme}
+              className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-2 py-2.5 rounded-lg transition-colors text-sm font-medium"
+            >
+              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </button>
+          </div>
+          
           <button 
             onClick={startTutorial}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-800/50 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
           >
-            <HelpCircle className="w-4 h-4 text-indigo-300" />
+            <HelpCircle className="w-4 h-4 text-gray-400" />
             {t('showTutorial')}
           </button>
-          <button 
-            onClick={() => {
-              setIsFeedbackOpen(true);
-              closeMenu();
-            }}
-            className="nav-rate w-full flex items-center justify-center gap-2 bg-indigo-800 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
-          >
-            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-            {t('rateApp')}
-          </button>
-          <div className="mt-4 text-xs text-indigo-400 text-center">
-            EduGenius AI Phase 1
-          </div>
         </div>
       </aside>
 
