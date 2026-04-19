@@ -27,7 +27,8 @@
         "type": { "type": "string", "enum": ["Audio", "PDF", "Word", "Text"] },
         "rawText": { "type": "string" },
         "extractedAt": { "type": "string" },
-        "isFavorite": { "type": "boolean" }
+        "isFavorite": { "type": "boolean" },
+        "tags": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["userId", "title", "type", "rawText", "extractedAt", "isFavorite"]
     },

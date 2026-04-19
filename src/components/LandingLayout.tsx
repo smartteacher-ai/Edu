@@ -7,11 +7,17 @@ export default function LandingLayout() {
   const navigate = useNavigate();
 
   const handleAuth = async () => {
-    if (user) {
-      navigate('/app');
-    } else {
-      await signInWithGoogle();
-      navigate('/app');
+    try {
+      if (user) {
+        navigate('/app');
+      } else {
+        await signInWithGoogle();
+        navigate('/app');
+      }
+    } catch (error: any) {
+      if (error?.code !== 'auth/popup-closed-by-user') {
+        console.error('Authentication error:', error);
+      }
     }
   };
 

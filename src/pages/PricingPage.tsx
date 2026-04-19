@@ -7,10 +7,16 @@ export default function PricingPage() {
   const navigate = useNavigate();
 
   const handleUpgrade = async () => {
-    if (!user) {
-      await signInWithGoogle();
+    try {
+      if (!user) {
+        await signInWithGoogle();
+      }
+      navigate('/app/profile');
+    } catch (error: any) {
+      if (error?.code !== 'auth/popup-closed-by-user') {
+        console.error('Authentication error:', error);
+      }
     }
-    navigate('/app/profile');
   };
 
   return (

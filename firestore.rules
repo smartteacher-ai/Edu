@@ -32,14 +32,15 @@ service cloud.firestore {
     // Validation Blueprint for Content
     function isValidContent(data) {
       return data.keys().hasAll(['id', 'userId', 'title', 'type', 'rawText', 'extractedAt', 'isFavorite'])
-        && data.size() == 7
+        && data.size() >= 7 && data.size() <= 8
         && data.id is string && data.id.size() <= 128
         && data.userId is string && data.userId == request.auth.uid
         && data.title is string && data.title.size() <= 250
         && data.type is string && data.type in ['Audio', 'PDF', 'Word', 'Text']
         && data.rawText is string && data.rawText.size() <= 1048576 // 1MB raw text limit in characters
         && data.extractedAt is string && data.extractedAt.size() <= 64
-        && data.isFavorite is bool;
+        && data.isFavorite is bool
+        && (data.keys().hasAll(['tags']) ? (data.tags is list && data.tags.size() <= 20) : true);
     }
 
     // Validation Blueprint for Output
@@ -92,11 +93,10 @@ service cloud.firestore {
                     && isValidId(contentId)
                     && isValidContent(incoming())
                     && existing().userId == request.auth.uid // Ownership check
-                    && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'isFavorite']) // Only allow updating title and favorite state
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'isFavorite', 'rawText', 'tags']) // allowed properties
                     && incoming().userId == existing().userId
                     && incoming().type == existing().type
-                    && incoming().extractedAt == existing().extractedAt
-                    && incoming().rawText == existing().rawText;
+                    && incoming().extractedAt == existing().extractedAt;
 
       allow delete: if isSignedIn()
                     && isValidId(contentId)
