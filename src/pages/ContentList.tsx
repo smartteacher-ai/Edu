@@ -6,13 +6,11 @@ import { format } from 'date-fns';
 import { useTranslation } from '../lib/i18n';
 import { deleteContentFromDB } from '../services/db';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 
 const ITEMS_PER_PAGE = 20;
 
 export default function ContentList() {
-  const { language } = useStore();
+  const { language, contents: allContents } = useStore();
   const { user } = useAuth();
   const t = useTranslation(language);
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,15 +41,9 @@ export default function ContentList() {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, 'contents'), where('userId', '==', user.uid));
-    const unsub = onSnapshot(q, (snap) => {
-      const data: ContentSource[] = [];
-      snap.forEach(doc => data.push({ id: doc.id, ...doc.data() } as ContentSource));
-      setContents(data);
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [user]);
+    setContents(allContents);
+    setLoading(false);
+  }, [user, allContents]);
 
   const handleDelete = async (id: string) => {
     if (confirm(language === 'ar' ? 'هل أنت متأكد أنك تريد حذف هذا المحتوى؟' : 'Are you sure you want to delete this content?')) {

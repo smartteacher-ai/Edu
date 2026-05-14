@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, ContentType } from '../store/useStore';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { extractTextFromMedia } from '../services/ai';
 import { UploadCloud, FileText, Mic, FileType2, Loader2, Square, Play } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function NewContent() {
   const navigate = useNavigate();
-  const { customApiKey, language } = useStore();
+  const { customApiKey, language, contents: allContents } = useStore();
   const { user, profile, logActivity } = useAuth();
   const t = useTranslation(language);
   
@@ -91,9 +89,7 @@ export default function NewContent() {
   const processFile = async (file: File) => {
     // Check Free Plan Limits (max 3 files total)
     if (profile?.plan === 'free') {
-      const q = query(collection(db, 'contents'), where('userId', '==', user?.uid));
-      const myDocs = await getDocs(q);
-      if (myDocs.size >= 3) {
+      if (allContents.length >= 3) {
         toast.error(language === 'ar' ? 'لقد وصلت إلى الحد الأقصى المسموح به للملفات (3). قم بالترقية للعدد غير المحدود.' : 'You have reached the maximum file limit (3) on the Free plan. Upgrade for unlimited files.');
         return;
       }
@@ -123,13 +119,7 @@ export default function NewContent() {
       setUploadProgress(0);
       
       try {
-        // @ts-ignore
-        const defaultKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : '';
-        const apiKey = customApiKey || defaultKey;
-        
-        if (!apiKey) {
-          throw new Error(language === 'ar' ? 'مفتاح API مفقود. يرجى إضافته في الإعدادات.' : "API Key is missing. Please add it in Settings.");
-        }
+        const apiKey = customApiKey || '';
 
         const extractedText = await extractTextFromMedia(file, apiKey, (progress) => {
           setUploadProgress(progress);

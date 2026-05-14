@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../lib/i18n';
@@ -22,28 +20,9 @@ export default function ActivityLogPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchLogs() {
-      if (!user) return;
-      try {
-        const q = query(
-          collection(db, 'activity_logs'),
-          where('userId', '==', user.uid),
-          orderBy('createdAt', 'desc'),
-          limit(50)
-        );
-        const snapshot = await getDocs(q);
-        const fetchedLogs = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as ActivityLog[];
-        setLogs(fetchedLogs);
-      } catch (err) {
-        console.error('Error fetching activity logs:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchLogs();
+    // Local offline mock has no activity log currently stored natively, skip.
+    setLogs([]);
+    setLoading(false);
   }, [user]);
 
   if (loading) {

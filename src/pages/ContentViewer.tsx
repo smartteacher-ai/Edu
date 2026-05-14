@@ -6,15 +6,13 @@ import { FileText, Sparkles, Loader2, Download, Trash2, ArrowLeft, KeyRound, Pri
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 import { useTranslation } from '../lib/i18n';
-import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { saveOutputToDB, deleteOutputFromDB, toggleContentFavoriteDB, toggleOutputFavoriteDB, updateContentTagsDB, updateContentRawTextDB } from '../services/db';
 import { useAuth } from '../contexts/AuthContext';
 
   export default function ContentViewer() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { customApiKey, language, globalFontSize, setGlobalFontSize } = useStore();
+    const { customApiKey, language, globalFontSize, setGlobalFontSize, contents: allContents, outputs: allOutputs } = useStore();
     const { user, profile, incrementUsage, canGenerate, logActivity } = useAuth();
     const t = useTranslation(language);
   
@@ -33,30 +31,20 @@ import { useAuth } from '../contexts/AuthContext';
   useEffect(() => {
     if (!user || !id) return;
     
-    // Fetch parent content
-    const fetchContent = async () => {
-      const docRef = doc(db, 'contents', id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists() && docSnap.data().userId === user.uid) {
-        setContent({ id: docSnap.id, ...docSnap.data() } as ContentSource);
-      } else {
-        toast.error('Content not found or access denied');
-      }
-      setIsLoading(false);
-    };
-    fetchContent();
-
-    // Listen to outputs
-    const q = query(collection(db, 'outputs'), where('sourceId', '==', id), where('userId', '==', user.uid));
-    const unsub = onSnapshot(q, (snap) => {
-      const data: EducationalOutput[] = [];
-      snap.forEach(doc => data.push({ id: doc.id, ...doc.data() } as EducationalOutput));
-      data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setRelatedOutputs(data);
-    });
-
-    return () => unsub();
-  }, [user, id]);
+    const foundContent = allContents.find(c => c.id === id);
+    if (foundContent) {
+      setContent(foundContent);
+    } else {
+      toast.error('Content not found');
+      navigate('/app/content');
+    }
+    
+    const matchedOutputs = allOutputs.filter(o => o.sourceId === id);
+    matchedOutputs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    setRelatedOutputs(matchedOutputs);
+    
+    setIsLoading(false);
+  }, [user, id, allContents, allOutputs, navigate]);
 
   const handleDeleteOutput = async (outputId: string) => {
      await deleteOutputFromDB(outputId);
@@ -88,14 +76,7 @@ import { useAuth } from '../contexts/AuthContext';
 
     setIsGenerating(true);
     try {
-      // safely get api key
-      // @ts-ignore
-      const defaultKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : '';
-      const apiKey = customApiKey || defaultKey;
-      
-      if (!apiKey) {
-        throw new Error(language === 'ar' ? 'مفتاح API مفقود. يرجى إضافته في الإعدادات.' : 'API Key is missing. Please add it in Profile settings.');
-      }
+      const apiKey = customApiKey || '';
 
       const generatedText = await generateEducationalContent(content.rawText, type, apiKey, targetLang);
       

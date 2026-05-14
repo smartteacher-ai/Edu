@@ -6,11 +6,9 @@ import { FileUp, FileOutput, BrainCircuit, Plus, Info, Star } from 'lucide-react
 import { format, subDays } from 'date-fns';
 import { useTranslation } from '../lib/i18n';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 
 export default function Dashboard() {
-  const { language } = useStore();
+  const { language, contents: allContents, outputs: allOutputs } = useStore();
   const { profile, user } = useAuth();
   const t = useTranslation(language);
 
@@ -20,30 +18,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    let pending = 2;
-    const checkDone = () => {
-      pending -= 1;
-      if (pending === 0) setLoading(false);
-    };
-
-    const q1 = query(collection(db, 'contents'), where('userId', '==', user.uid));
-    const unsub1 = onSnapshot(q1, (snap) => {
-      const data: ContentSource[] = [];
-      snap.forEach(doc => data.push({ id: doc.id, ...doc.data() } as ContentSource));
-      setContents(data);
-      checkDone();
-    });
-
-    const q2 = query(collection(db, 'outputs'), where('userId', '==', user.uid));
-    const unsub2 = onSnapshot(q2, (snap) => {
-      const data: EducationalOutput[] = [];
-      snap.forEach(doc => data.push({ id: doc.id, ...doc.data() } as EducationalOutput));
-      setOutputs(data);
-      checkDone();
-    });
-
-    return () => { unsub1(); unsub2(); };
-  }, [user]);
+    setContents(allContents);
+    setOutputs(allOutputs);
+    setLoading(false);
+  }, [user, allContents, allOutputs]);
 
   if (loading) {
     return (
@@ -162,8 +140,8 @@ export default function Dashboard() {
       {/* Chart */}
       <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900 mb-6">{language === 'ar' ? 'عمليات التوليد (آخر 7 أيام)' : 'Output Generated (Last 7 Days)'}</h2>
-        <div className="h-72 w-full" dir="ltr">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-72 w-full" dir="ltr" style={{ minWidth: 0, minHeight: 0 }}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />

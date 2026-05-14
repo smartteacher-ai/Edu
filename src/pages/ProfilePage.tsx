@@ -3,8 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useStore } from '../store/useStore';
 import { CreditCard, Key, LogOut, CheckCircle2, AlertTriangle, ShieldCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { db } from '../lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
 
 export default function ProfilePage() {
   const { user, profile, incrementUsage, canGenerate, logout, logActivity } = useAuth();
@@ -27,8 +25,6 @@ export default function ProfilePage() {
     // Simulate secure payment processing payload for testing/demo
     setTimeout(async () => {
       try {
-        const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, { plan: 'pro' });
         toast.success("Payment successful! Welcome to Pro.");
         setShowPayment(false);
       } catch (e) {

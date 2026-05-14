@@ -1,49 +1,42 @@
-import { collection, doc, setDoc, deleteDoc, getDocs, query, where, orderBy, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { ContentSource, EducationalOutput } from '../store/useStore';
+import { useStore } from '../store/useStore';
 
 export const saveContentToDB = async (content: ContentSource, userId: string) => {
-  const contentRef = doc(db, 'contents', content.id);
-  await setDoc(contentRef, {
-    ...content,
-    userId,
-    isFavorite: false
-  });
+  useStore.getState().addContent({ ...content, isFavorite: false });
 };
 
 export const deleteContentFromDB = async (contentId: string) => {
-  await deleteDoc(doc(db, 'contents', contentId));
+  useStore.getState().deleteContent(contentId);
 };
 
 export const saveOutputToDB = async (output: EducationalOutput, userId: string) => {
-  const outputRef = doc(db, 'outputs', output.id);
-  await setDoc(outputRef, {
-    ...output,
-    userId,
-    isFavorite: false
-  });
+  useStore.getState().addOutput({ ...output, isFavorite: false });
 };
 
 export const deleteOutputFromDB = async (outputId: string) => {
-  await deleteDoc(doc(db, 'outputs', outputId));
+  useStore.getState().deleteOutput(outputId);
 };
 
 export const toggleContentFavoriteDB = async (contentId: string, isFavorite: boolean) => {
-  const contentRef = doc(db, 'contents', contentId);
-  await updateDoc(contentRef, { isFavorite });
+  useStore.setState(state => ({
+    contents: state.contents.map(c => c.id === contentId ? { ...c, isFavorite } : c)
+  }));
 };
 
 export const toggleOutputFavoriteDB = async (outputId: string, isFavorite: boolean) => {
-  const outputRef = doc(db, 'outputs', outputId);
-  await updateDoc(outputRef, { isFavorite });
+  useStore.setState(state => ({
+    outputs: state.outputs.map(c => c.id === outputId ? { ...c, isFavorite } : c)
+  }));
 };
 
 export const updateContentTagsDB = async (contentId: string, tags: string[]) => {
-  const contentRef = doc(db, 'contents', contentId);
-  await updateDoc(contentRef, { tags });
+  useStore.setState(state => ({
+    contents: state.contents.map(c => c.id === contentId ? { ...c, tags } : c)
+  }));
 };
 
 export const updateContentRawTextDB = async (contentId: string, rawText: string) => {
-  const contentRef = doc(db, 'contents', contentId);
-  await updateDoc(contentRef, { rawText });
+  useStore.setState(state => ({
+    contents: state.contents.map(c => c.id === contentId ? { ...c, rawText } : c)
+  }));
 };

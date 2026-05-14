@@ -11,15 +11,9 @@ export default function LandingPage() {
 
   const handleStart = async () => {
     try {
-      if (user) {
-        navigate('/app');
-      } else {
-        setIsLoggingIn(true);
-        await signInWithGoogle();
-        navigate('/app');
-      }
+      navigate('/app');
     } catch (error: any) {
-      toast.error(error.message || 'Authentication failed. Please try again.');
+      toast.error(error.message || 'Navigation failed. Please try again.');
     } finally {
       setIsLoggingIn(false);
     }
